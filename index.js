@@ -23,7 +23,7 @@ app.use((req,res,next)=>{
     // err.statusCode=404;
     // next(err); //forward to error handling middleware
 
-    // next(new AppError(`can't find ${req.originalUrl} on this server`,404));
+    next(new AppError(`can't find ${req.originalUrl} on this server`,404));
 });
 app.use(errorControllerHandeler)
 mongoose.connect(process.env.MONGO_URI)
