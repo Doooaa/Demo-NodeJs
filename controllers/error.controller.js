@@ -9,11 +9,18 @@ const sendErrorDev = (err, res) => {
 }
 
 const sendErrorProd = (err, res) => {
-  res.status(500).json({
-    status: 'error',
-    message: 'Something went wrong!',
-  });
-}
+if(err.isOperational){
+    res.status(err.statusCode).json({
+      status: err.status,
+      message: err.message
+    });
+  } else {
+    console.error('ERROR 💥', err);
+    res.status(500).json({
+      status: 'error',
+      message: 'Something went very wrong!'
+    });
+}}
 
 
 export default (err, req, res, next) => {
