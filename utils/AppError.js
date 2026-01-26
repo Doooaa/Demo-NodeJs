@@ -1,3 +1,4 @@
+//instantiate custom error class for operational errors
 class AppError extends Error {
     constructor(message,statusCode){
         console.log('AppError message:', message);
