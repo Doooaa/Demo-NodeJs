@@ -1,23 +1,6 @@
 import Tour from '../models/tour.model.js';
 import catchAysncFunction from '../utils/catchAysnc.js';
-// // GET ALL TOURS
-// export const getAllTours = async (req, res) => {
-//   try {
-
-//     const tours = await Tour.find();
-//     res.status(200).json({
-//       status: 'Success',
-//       results: tours.length,
-//       data: tours
-//     });
-//   } catch (error) {
-//     res.status(404).json({
-//       status: "Fail",
-//       message: error
-//     })
-//   }
-// };
-
+import handelAppError from '../utils/AppError.js';
 
 
 // GET TOUR BY ID
@@ -25,7 +8,7 @@ export const getTourById = catchAysncFunction(async (req, res, next) => {
 
   const tour = await Tour.findById(req.params.id);
   if (!tour) {
-    return errorControllerHandeler('Tour not found', 404);
+     return next(new handelAppError('Tour not found', 404));
   }
 
   res.status(200).json({
@@ -71,7 +54,7 @@ export const updateTourById = catchAysncFunction(async (req, res, next) => {
   );
 
   if (!tour) {
-    return errorControllerHandeler('Tour not found', 404);
+    return next(new handelAppError('Tour not found', 404));
   }
 
   res.status(200).json({
@@ -95,7 +78,7 @@ export const deleteTourById = catchAysncFunction(async (req, res, next) => {
   );
 
   if (!tour) {
-    return errorControllerHandeler('Tour not found', 404);
+    return next(new handelAppError('Tour not found', 404));
     // return res.status(404).json({
     //   status: 'fail',
     //   message: 'Tour not found'
@@ -139,8 +122,7 @@ export const getAllTours = async (req, res, next) => {
 
   // 3️⃣ Field limiting
   if (req.query.fields) {
-    debugger;
-    debugger; const fields = req.query.fields.split(',').join(' ');
+     const fields = req.query.fields.split(',').join(' ');
     // "name,price" → "name price"
     query = query.select(fields);
   } else {
