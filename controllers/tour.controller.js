@@ -1,6 +1,6 @@
 import Tour from '../models/tour.model.js';
 import catchAysncFunction from '../utils/catchAysnc.js';
-import handelAppError from '../utils/AppError.js';
+import appError from '../utils/AppError.js';
 
 
 // GET TOUR BY ID
@@ -8,9 +8,8 @@ export const getTourById = catchAysncFunction(async (req, res, next) => {
 
   const tour = await Tour.findById(req.params.id);
   if (!tour) {
-     return next(new handelAppError('Tour not found', 404));
+    return next(new appError('Tour not found', 404));
   }
-
   res.status(200).json({
     status: 'Success',
     data: tour
@@ -20,23 +19,16 @@ export const getTourById = catchAysncFunction(async (req, res, next) => {
 
 // CREATE TOUR
 export const createTour = catchAysncFunction(async (req, res, next) => {
-  try {
-    const newTour = await Tour.create(req.body);
 
-    res.status(201).json({
-      status: 'Success',
-      data: {
-        tour: newTour
-      }
-    });
-  } catch (err) {
-    res.status(400).json({
-      status: 'Fail',
-      message: err.message
-    });
-  }
+  const newTour = await Tour.create(req.body);
+
+  res.status(201).json({
+    status: 'Success',
+    data: {
+      tour: newTour
+    }
+  })
 });
-
 
 //update by id
 // GET TOUR BY ID
@@ -54,7 +46,7 @@ export const updateTourById = catchAysncFunction(async (req, res, next) => {
   );
 
   if (!tour) {
-    return next(new handelAppError('Tour not found', 404));
+    return next(new appError('Tour not found', 404));
   }
 
   res.status(200).json({
@@ -78,11 +70,7 @@ export const deleteTourById = catchAysncFunction(async (req, res, next) => {
   );
 
   if (!tour) {
-    return next(new handelAppError('Tour not found', 404));
-    // return res.status(404).json({
-    //   status: 'fail',
-    //   message: 'Tour not found'
-    // });
+    return next(new appError('Tour not found', 404));
   }
 
   res.status(200).json({
@@ -95,7 +83,7 @@ export const deleteTourById = catchAysncFunction(async (req, res, next) => {
 
 });
 
-export const getAllTours = async (req, res, next) => {
+export const getAllTours = catchAysncFunction(async (req, res, next) => {
 
   // 1️⃣ Copy query object
   const queryObj = { ...req.query };
@@ -122,7 +110,7 @@ export const getAllTours = async (req, res, next) => {
 
   // 3️⃣ Field limiting
   if (req.query.fields) {
-     const fields = req.query.fields.split(',').join(' ');
+    const fields = req.query.fields.split(',').join(' ');
     // "name,price" → "name price"
     query = query.select(fields);
   } else {
@@ -138,7 +126,7 @@ export const getAllTours = async (req, res, next) => {
     }
   });
 
-};
+});
 
 
 
