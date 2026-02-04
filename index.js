@@ -19,13 +19,19 @@ app.use((req,res,next)=>{
 app.use(GlobalErrHandeler)
 
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => {
+  .then( () => {
     console.log('✅ MongoDB connected successfully');
+    
   })
   .catch((error) => {
     console.error('❌ MongoDB connection error:', error.message);
   });
-
+// Handle unhandled promise rejections globally
+process.on('unhandledRejection',err=>{
+  console.error('UNHANDLED REJECTION!👁️ Shutting down...');
+  console.error(err.name, err.message);
+  process.exit(1);
+})
 app.listen(3000, () => {
   console.log('🚀 Server running on http://localhost:3000');
 });

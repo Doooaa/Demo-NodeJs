@@ -12,6 +12,11 @@ const handleDuplicateFieldsDB=(err)=>{
   return new appError(message, 400);
 }
 
+const handleValidationErrorDB=(err)=>{
+  const errors = Object.values(err.errors).map(value=>value.message);
+  const message = `Invalid input data. ${errors.join('. ')}`;
+  return new appError(message, 400);
+}
 // Send error details in development environment
 const sendErrorDev = (err, res) => {
   res.status(err.statusCode || 500).json({
@@ -29,8 +34,8 @@ if(err.isOperational){
       status: err.status,
       message: err.message
     });
-  } else {
-    
+  } else { 
+    // Programming or other unknown error: don't leak error details
     console.error('ERROR 💥', err);
     console.error(`${err.isOperational} this is not operational error`);
     res.status(500).json({
@@ -43,10 +48,12 @@ if(err.isOperational){
 export default (err, req, res, next) => {
   if (process.env.NODE_ENV === 'production') {
     // let error = { ...err };
-    let error = Object.create(err); // to properly copy the error object with its properties
+    let error = err;//Object.create(err); // to properly copy the error object with its properties
     if(error.name=='CastError') error=handleCastErrorDB(error);
-    sendErrorProd(error, res);
     if(error.code==11000) error=handleDuplicateFieldsDB(error);
+    if(error.name=='ValidationError') error=handleValidationErrorDB(error);
+
+    sendErrorProd(error, res);
   } else {
     sendErrorDev(err, res);
   }
