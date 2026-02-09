@@ -7,6 +7,7 @@ import {
 const Tourrouter=express.Router();
 
 
+
 Tourrouter.route('/')
 .get(getAllTours)
 .post(createTour)
