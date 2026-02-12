@@ -50,7 +50,9 @@ export default (err, req, res, next) => {
     // let error = { ...err };
     let error = err;//Object.create(err); // to properly copy the error object with its properties
     if(error.name=='CastError') error=handleCastErrorDB(error);
+    // if error code is 11000 it means it's a duplicate key error in mongoose
     if(error.code==11000) error=handleDuplicateFieldsDB(error);
+    // if error name is ValidationError it means it's a validation error in mongoose
     if(error.name=='ValidationError') error=handleValidationErrorDB(error);
 
     sendErrorProd(error, res);

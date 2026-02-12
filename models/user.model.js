@@ -56,5 +56,13 @@ userSchema.pre('save', async function() {
 
 });
 
+ userSchema.methods.correctPassword=async function(candidatePassword,userPassword){
+    //candidatePassword  ( not decrpted pass )is the password that the user is trying to log in with and userPassword is the hashed password stored in the database
+    return await bcrypt.compare(candidatePassword,userPassword);
+ }
+
+
+
+
 const User=mongoose.model('User',userSchema);
 export default User;
