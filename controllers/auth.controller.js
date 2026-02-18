@@ -47,3 +47,24 @@ export const login = catchAysncFunction(async (req, res, next) => {
         }
     })  
 })
+
+
+// PROTECT MIDDLEWARE
+export const protect = catchAysncFunction(async (req, res, next) => {
+    let token;      
+    if(req.headers.authorization ){
+        token = req.headers.authorization;
+    }
+    if (!token) {
+        return next(new appError('You are not logged in! Please log in to get access.', 401));
+    }   
+    // Verify the token and decode it to get the user ID
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // Find the user by ID and check if the user still exists
+    const currentUser = await userModel.findById(decoded.id);
+    if (!currentUser) {
+        return next(new appError('The user belonging to this token does no longer exist.', 401));
+    }   
+    req.user = currentUser;
+    next();
+});
