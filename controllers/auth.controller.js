@@ -3,6 +3,8 @@ import jwt from "jsonwebtoken";
 import catchAysncFunction from "../utils/catchAysnc.js";
 import appError from "../utils/AppError.js";
 import env from "dotenv";
+import { promisify } from 'util'; // to convert callback-based functions to promise-based functions
+
 env.config();
 // SIGNUP
 export const singUp = catchAysncFunction(async (req, res, next) => {
@@ -41,7 +43,7 @@ export const login = catchAysncFunction(async (req, res, next) => {
     const token = jwt.sign({ id: user._id, name: user.name }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
     res.status(200).json({
         status: 'success',
-        token,
+         token,
         data: {
             user
         }
@@ -52,19 +54,23 @@ export const login = catchAysncFunction(async (req, res, next) => {
 // PROTECT MIDDLEWARE
 export const protect = catchAysncFunction(async (req, res, next) => {
     let token;      
-    if(req.headers.authorization ){
-        token = req.headers.authorization;
+    if(req.headers.authorization && req.headers.authorization.startsWith('Bearer')){
+        token = req.headers.authorization.split(' ')[1];
+        // console.log('Token from protect middleware:', req.headers.authorization);
     }
     if (!token) {
         return next(new appError('You are not logged in! Please log in to get access.', 401));
     }   
     // Verify the token and decode it to get the user ID
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
+
     // Find the user by ID and check if the user still exists
     const currentUser = await userModel.findById(decoded.id);
     if (!currentUser) {
         return next(new appError('The user belonging to this token does no longer exist.', 401));
     }   
     req.user = currentUser;
+
     next();
 });

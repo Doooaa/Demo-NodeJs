@@ -9,7 +9,7 @@ const Tourrouter=express.Router();
 
 
 Tourrouter.route('/')
-.get( getAllTours)
+.get(protect, getAllTours)
 .post(createTour)
 
 Tourrouter.route('/:id')
