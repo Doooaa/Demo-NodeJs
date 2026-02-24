@@ -2,7 +2,7 @@
 
 
 import express from 'express';
-import {
+import { forgotPassword,resetPassword,
     singUp,login
 } from './../controllers/auth.controller.js'
 
@@ -14,6 +14,9 @@ userRouter.route('/signup')
 userRouter.route('/login')
 .post(login)
 
+
+userRouter.post("/forgotPassword", forgotPassword);
+userRouter.patch("/resetPassword/:token", resetPassword);
 
 
 export default userRouter;
