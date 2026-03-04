@@ -6,6 +6,7 @@ import env from "dotenv";
 import { promisify } from 'util'; // to convert callback-based functions to promise-based functions
 import { sendEmail } from "../utils/email.js";
 env.config();
+import crypto from 'crypto'; // to generate random bytes for password reset token
 // SIGNUP
 export const singUp = catchAysncFunction(async (req, res, next) => {
     const newUser = await userModel.create({
@@ -111,7 +112,8 @@ export const forgotPassword = catchAysncFunction(async (req, res, next) => {
 
         res.status(200).json({
             status: 'success',
-            message: 'Token sent to email!'
+            message: 'Token sent to email!',
+            user
         });
     } catch (err) {
         user.resetPasswordToken = undefined;
@@ -124,12 +126,16 @@ export const forgotPassword = catchAysncFunction(async (req, res, next) => {
 
 export const resetPassword = catchAysncFunction(async (req, res, next) => {
     // 1) Get user based on the token
-    const hashedToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
+    const hashedToken =  crypto.createHash('sha256').update(req.params.token).digest('hex');
+    // console.log("Token from params:", req.params.token);
+    // console.log("Hashed token:", hashedToken);
     const user = await userModel.findOne({ resetPasswordToken: hashedToken, resetPasswordExpire: { $gt: Date.now() } });
     // 2) If token has not expired, and there is user, set the new password
+
     if (!user) {
         return next(new appError('Token is invalid or has expired', 400));
     }
+
     user.password = req.body.password;
     user.confirmPassword = req.body.confirmPassword;
     user.resetPasswordToken = undefined;

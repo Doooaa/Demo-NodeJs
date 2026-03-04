@@ -73,8 +73,8 @@ userSchema.methods.correctPassword = async function (candidatePassword, userPass
 
 userSchema.methods.createPasswordResetToken = function () {
     const resetToken = crypto.randomBytes(32).toString('hex'); // Generate a random token and convert it to a hexadecimal string
-    this.resetToken = crypto.createHash('sha256').update(resetToken).digest('hex');// Hash the token and store it in the database
-    this.resetTokenExpires = Date.now() + 10 * 60 * 1000;// Set the token expiration time to 10 minutes from now
+    this.resetPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');// Hash the token and store it in the database
+    this.resetPasswordExpire= Date.now() + 10 * 60 * 1000;// Set the token expiration time to 10 minutes from now
     return resetToken;
 }
 

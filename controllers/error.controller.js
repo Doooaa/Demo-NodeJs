@@ -1,4 +1,4 @@
-import appError from '../utils/appError.js';
+import appError from '../utils/AppError.js';
  // Handle specific database errors mongoose errors #id
 const handleCastErrorDB = (err) => {
   const message = `Invalid ${err.path}: ${err.value}.`;
