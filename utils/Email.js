@@ -9,7 +9,8 @@ export const sendEmail = async (options) => {
         auth: {
             user: process.env.EMAIL_USER,
             pass: process.env.EMAIL_PASS
-        }
+        },
+        
     });
     console.log('Email transporter created successfully',process.env.EMAIL_HOST,  process.env.EMAIL_PORT, process.env.EMAIL_USER, process.env.EMAIL_PASS);
     // 2) Define the email options
@@ -17,7 +18,7 @@ export const sendEmail = async (options) => {
        from: `Doaa <${process.env.EMAIL_USER}>`,
         to: options.email,
         subject: options.subject,
-        text: options.message
+        html: options.html
     };
 
     // 3) Send the email

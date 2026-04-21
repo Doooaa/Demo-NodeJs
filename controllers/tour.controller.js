@@ -1,87 +1,80 @@
 import Tour from '../models/tour.model.js';
 import catchAysncFunction from '../utils/catchAysnc.js';
 import appError from '../utils/AppError.js';
+import {CreateOne,FindAll,FindOneById , UpdateOneById,getByReference,deleteOneById} from "../utils/handlerFactory.js";
+import multer from "multer";
 
+
+const multerStorge = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'public/img/tours');
+    }
+    , filename: (req, file, cb) => {
+        const ext = file.mimetype.split('/')[1];
+        cb(null, `tour-${req.user.id}-${Date.now()}.${ext}`); // to save the photo with a unique name using the user id and the current timestamp to avoid overwriting existing photos
+    }
+});
+
+const multerFilter = (req, file, cb) => {
+  console.log(req.files)
+    if (file.mimetype.startsWith('image')) {
+        cb(null, true);
+    } else {
+        cb(new appError('Not an image! Please upload only images.', 400), false);
+    }
+}
+
+const upload=multer({
+    storage: multerStorge,      
+    fileFilter: multerFilter
+})
+
+export const uploadTourPhoto = upload.fields(
+[
+  {
+  name: 'imageCover', maxCount: 1
+}, 
+{
+  name: 'images', maxCount: 3
+}
+])
+
+
+//after the multer 
+// req.files = {
+//   imageCover: [file],
+//   images: [file, file, file]
+// } 
+export const resizeTourImages = (req, res, next) => {
+
+  // 1️⃣ imageCover
+  if (req.files.imageCover) {
+    req.body.imageCover = req.files.imageCover[0].filename;
+  }
+
+  // 2️⃣ images
+  if (req.files.images) {
+    req.body.images = req.files.images.map(file => file.filename);
+  }
+
+  next();
+};
 
 // GET TOUR BY ID
-export const getTourById = catchAysncFunction(async (req, res, next) => {
-
-  const tour = await Tour.findById(req.params.id);
-  if (!tour) {
-    return next(new appError('Tour not found', 404));
-  }
-  res.status(200).json({
-    status: 'Success',
-    data: tour
-  });
-
-});
+export const getTourById = FindOneById(Tour,"guides","reviews");
 
 // CREATE TOUR
-export const createTour = catchAysncFunction(async (req, res, next) => {
-
-  const newTour = await Tour.create(req.body);
-
-  res.status(201).json({
-    status: 'Success',
-    data: {
-      tour: newTour
-    }
-  })
-});
+export const createTour = CreateOne(Tour);
 
 //update by id
 // GET TOUR BY ID
-export const updateTourById = catchAysncFunction(async (req, res, next) => {
+export const updateTourById = UpdateOneById(Tour);
 
-  console.log('BODY🔰🔰🔰:', req.body);
-
-  const tour = await Tour.findByIdAndUpdate(
-    req.params.id,
-    req.body,
-    {
-      new: true,
-      runValidators: true
-    }
-  );
-
-  if (!tour) {
-    return next(new appError('Tour not found', 404));
-  }
-
-  res.status(200).json({
-    status: 'success',
-    data: {
-      tour
-    }
-  });
-});
 //delete by id
 // GET TOUR BY ID
-export const deleteTourById = catchAysncFunction(async (req, res, next) => {
+export const deleteTourById = deleteOneById(Tour);
 
-  const tour = await Tour.findByIdAndDelete(
-    req.params.id,
-    req.body,
-    {
-      new: true,
-      runValidators: true
-    }
-  );
-
-  if (!tour) {
-    return next(new appError('Tour not found', 404));
-  }
-
-  res.status(200).json({
-    status: 'success',
-    data: {
-      tour
-    }
-  });
-
-
-});
+// GET ALL TOURS
 
 export const getAllTours = catchAysncFunction(async (req, res, next) => {
 
@@ -128,6 +121,28 @@ export const getAllTours = catchAysncFunction(async (req, res, next) => {
 
 });
 
+
+//url=/tours/tour-within/233/center/39.4634167209729,22.704318967349995/unit/mi
+//url =/tours/tour-within/233/center/39.4634167209729,22.704318967349995/unit/km
+export const getTourWithIn = catchAysncFunction(async (req, res, next) => {
+  const {distances,latlng ,unit}=req.params;
+  const[lat,lang]=latlng.split(',');
+  const radius=unit==='mi' ? distances/3963.2 : distances/6378.1; // radius of the earth in miles and kilometers
+  if(!lat || !lang){
+    return next(new appError('Please provide lat and lang in the format lat,lang',400));
+  }
+  const tours=await Tour.find({
+    startLocation: { $geoWithin: { $centerSphere: [[lang, lat], radius] } }
+  });
+  res.status(200).json({
+    status: 'success',
+    results: tours.length,
+    data: {
+      tours
+    }
+  });
+}
+)
 
 
 

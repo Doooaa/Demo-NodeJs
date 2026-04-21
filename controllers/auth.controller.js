@@ -7,20 +7,39 @@ import { promisify } from 'util'; // to convert callback-based functions to prom
 import { sendEmail } from "../utils/email.js";
 env.config();
 import crypto from 'crypto'; // to generate random bytes for password reset token
+import User from "../models/user.model.js";
+
+
+// create signUp token function to create a token for the user after signing up or logging in
+const signToken = (id, name) => {
+    return jwt.sign({ id, name }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
+}
 // SIGNUP
 export const singUp = catchAysncFunction(async (req, res, next) => {
+    
     const newUser = await userModel.create({
         name: req.body.name,
         email: req.body.email,
         password: req.body.password,
         confirmPassword: req.body.confirmPassword,
-        role: req.body.role
+        role: req.body.role,
+        photo: req.body.photo
     });
     if (!process.env.JWT_SECRET) {
         return next(new Error('JWT_SECRET is not defined'));
     }
     // Create a new user in the database using the data from the request body .create is like save in mongoose but it also returns the created document
     const token = jwt.sign({ id: newUser._id, name: newUser.name }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
+    const cookieOptions =
+    {
+        expires: new Date(Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000),
+    }
+    res.cookie("jwt", token, cookieOptions)
+    if (process.env.NODE_ENV === 'production') cookieOptions.secure = true; // Send cookie only on HTTPS in production
+    // In production, also set the cookie to be HTTP only to prevent client-side JavaScript from accessing it
+    if (process.env.NODE_ENV === 'production') cookieOptions.httpOnly = true;
+    newUser.password=undefined; // 🚨to hide the password field in the response
+
     res.status(201).json({
         status: 'success',
         token,
@@ -43,6 +62,15 @@ export const login = catchAysncFunction(async (req, res, next) => {
         return next(new appError('Incorrect email or password', 401));
     }
     const token = jwt.sign({ id: user._id, name: user.name }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
+    //save the token in a cookie
+    const cookieOptions =
+    {
+        expires: new Date(Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000),
+    }
+    res.cookie("jwt", token, cookieOptions)
+    if (process.env.NODE_ENV === 'production') cookieOptions.secure = true; // Send cookie only on HTTPS in production
+    // In production, also set the cookie to be HTTP only to prevent client-side JavaScript from accessing it
+    if (process.env.NODE_ENV === 'production') cookieOptions.httpOnly = true;
     res.status(200).json({
         status: 'success',
         token,
@@ -59,6 +87,10 @@ export const protect = catchAysncFunction(async (req, res, next) => {
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
         token = req.headers.authorization.split(' ')[1];
         // console.log('Token from protect middleware:', req.headers.authorization);
+    }
+    //✅ Also check if the token is in the cookies (for browser-based clients that store the token in cookies)
+    else if (req.cookies.jwt) {
+        token = req.cookies.jwt;
     }
     if (!token) {
         return next(new appError('You are not logged in! Please log in to get access.', 401));
@@ -98,14 +130,32 @@ export const forgotPassword = catchAysncFunction(async (req, res, next) => {
     await user.save({ validateBeforeSave: false });
     // 3) Send it to user's email
     const resetURL = `${req.protocol}://${req.get('host')}/user/resetPassword/${resetToken}`;
-    const message = `Forgot your password? Submit a PATCH request with your new password and passwordConfirm to: ${resetURL}.\nIf you didn't forget your password, please ignore this email!`;
+    const html = `
+<div style="font-family: Arial; padding:20px">
+  <h2>Password Reset</h2>
+  <p>You requested to reset your password</p>
+
+  <a href="${resetURL}" 
+     style="
+        background:#4CAF50;
+        color:white;
+        padding:10px 20px;
+        text-decoration:none;
+        border-radius:5px;">
+     Reset Password
+  </a>
+
+  <p>If you didn't request this please ignore this email.</p>
+</div>
+`;
+    // const message = `Forgot your password? Submit a PATCH request with your new password and passwordConfirm to: ${resetURL}.\nIf you didn't forget your password, please ignore this email!`;
     try {
         console.log("before email==========");
 
         await sendEmail({
             email: user.email,
             subject: 'Your password reset token (valid for 10 minutes)',
-            message
+            html
         })
 
         console.log("after email===========");
@@ -126,7 +176,7 @@ export const forgotPassword = catchAysncFunction(async (req, res, next) => {
 
 export const resetPassword = catchAysncFunction(async (req, res, next) => {
     // 1) Get user based on the token
-    const hashedToken =  crypto.createHash('sha256').update(req.params.token).digest('hex');
+    const hashedToken = crypto.createHash('sha256').update(req.params.token).digest('hex');
     // console.log("Token from params:", req.params.token);
     // console.log("Hashed token:", hashedToken);
     const user = await userModel.findOne({ resetPasswordToken: hashedToken, resetPasswordExpire: { $gt: Date.now() } });

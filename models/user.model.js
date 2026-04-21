@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
+
 bcrypt.genSalt(12).then(salt => {
     console.log(salt);
 }).catch(err => {
@@ -26,7 +27,7 @@ const userSchema = new mongoose.Schema({
     },
     photo: {
         type: String,
-        default: 'default.jpg'
+        default: 'image.jpg' //as default image
     },
     password: {
         select: false, // Hide the password field by default when querying the user
@@ -48,8 +49,13 @@ const userSchema = new mongoose.Schema({
             message: 'Passwords are not the same!'
         }
     }
-    , resetPasswordToken: String,
-    resetPasswordExpire: Date
+    ,resetPasswordToken: String,
+    resetPasswordExpire: Date,
+    active: {
+        type: Boolean,
+        default: true,
+        select: false // Hide the active field by default when querying the user
+    }
 
 })
 // Encrypt the password before saving the user document
@@ -66,6 +72,12 @@ userSchema.pre('save', async function () {
 
 });
 
+userSchema.pre(/^find/, function () { //شغل الـ middleware قبل أي query يبدأ بـ find
+    // this points to the current query 
+    this.find({ active: { $ne: false } });
+    // next();
+
+});
 userSchema.methods.correctPassword = async function (candidatePassword, userPassword) {
     //candidatePassword  ( not decrpted pass )is the password that the user is trying to log in with and userPassword is the hashed password stored in the database
     return await bcrypt.compare(candidatePassword, userPassword);
